@@ -3,9 +3,5 @@
   tasks:
   - name: Install packages
     yum: 
-        name: {{item}}
+        name: htop mc tmux
         state: present
-        with_items:
-          - htop
-          - mc
-          - tmux
