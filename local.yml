@@ -1,7 +1,5 @@
 - hosts: localhost
   become: true
-  pre_tasks:
-    - name: update repositories
 
   tasks:
     - include: tasks/packages.yml
