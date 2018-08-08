@@ -2,6 +2,8 @@
   become: true
   tasks:
   - name: Install packages
-    yum: 
-        name: htop mc tmux
-        state: present
+    yum: pkg={{item}} state=installed
+    with_items:
+     - htop
+     - mc
+     - tmux
