@@ -1,9 +1,7 @@
 - hosts: localhost
   become: true
+  pre_tasks:
+    - name: update repositories
+
   tasks:
-  - name: Install packages
-    yum: pkg={{item}} state=installed
-    with_items:
-     - htop
-     - mc
-     - tmux
+    - include: tasks/packages.yml

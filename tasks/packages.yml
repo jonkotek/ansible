@@ -1,0 +1,6 @@
+  - name: Install packages
+    yum: pkg={{item}} state=installed
+    with_items:
+     - htop
+     - mc
+     - tmux

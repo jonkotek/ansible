@@ -1,0 +1,16 @@
+
+[Dir Hist New Right Panel]
+0=/home/jkotek
+
+[cmdline]
+0=ls
+1=10
+2=q
+3=2
+4=!)
+5=exit
+6=
+
+[Dir Hist New Left Panel]
+0=/home/jkotek
+1=/home
