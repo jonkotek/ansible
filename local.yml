@@ -1,7 +1,11 @@
 - hosts: localhost
   become: true
   tasks:
-  - name: Install htop
+  - name: Install packages
     yum: 
-        name: htop
+        name: {{item}}
         state: present
+        with_items:
+          - htop
+          - mc
+          - tmux
