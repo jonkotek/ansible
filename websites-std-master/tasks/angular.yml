@@ -1,0 +1,55 @@
+#
+# Assumes you are executing from a CI/CD pipeline, will not work otherwise
+# SSL certs are NOT installed. They must be manually installed for now.
+#
+############ Start Website Install Plays #############
+- name: Website Installation
+  block:
+     - name: Copy in site specific vars file
+       local_action: shell cp "{{ RUNNER_DIR }}/roles/vars/main.yml" "{{ ansible_work_dir }}/roles/websites-std/vars/{{ httpd_shortname }}_{{ inventory_hostname }}_{{ http_Interface }}.yml"
+
+     - name: Load vars
+       include_vars: "{{ httpd_shortname }}_{{ inventory_hostname }}_{{ http_Interface }}.yml"
+
+     - name: Stop the site first before making changes
+       systemd:
+        name: "{{ httpd_shortname }}-{{ http_Interface }}.service"
+        state: stopped
+       ignore_errors: yes
+
+     - name: Ensure website folder structure exists
+       file: 
+        path: "{{ httpd_docroot }}"
+        state: directory
+        mode: 0775
+       ignore_errors: yes
+
+     - name: Ensure website logging folder structure exists
+       file: 
+        path: "{{ httpd_logdir }}"
+        state: directory
+        mode: 0775
+       ignore_errors: yes
+
+     - name: Copy in the site DocRoot contents
+       copy:
+        src: "{{ RUNNER_DIR }}/DocRoots/site/DocRoot"
+        dest: "{{ httpd_DestDir }}/{{ httpd_sitename}}"
+
+     - name: Copy in mime types file
+       copy:
+        src: "{{ RUNNER_DIR }}/mime.types"
+        dest: "{{ httpd_DestDir }}/{{ httpd_sitename}}"
+
+     - name: Set ownership app installation folder
+       file:
+        path: "{{ httpd_DestDir }}/{{ httpd_sitename }}"
+        owner: "{{ httpd_User }}"
+        group: "{{ httpd_Group }}"
+        state: directory
+        recurse: yes
+
+  when: true == true
+  become: true
+  become_user: root
+

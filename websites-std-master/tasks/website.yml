@@ -1,0 +1,92 @@
+#
+# Assumes you are executing from a CI/CD pipeline, will not work otherwise
+# SSL certs are NOT installed. They must be manually installed for now.
+#
+############ Start Website Install Plays #############
+- name: Website Installation
+  block:
+     - name: Set temporary name for the rules file 
+       set_fact:
+        rules_file: "{{ httpd_shortname }}_{{ inventory_hostname }}_{{ http_Interface }}.rules.j2"
+
+     - name: Copy in site specific rules file
+       local_action: shell cp "{{ RUNNER_DIR }}/roles/files/main.rules" "{{ ansible_work_dir }}/roles/websites-std/templates/{{ rules_file }}"
+
+     - name: Copy in site specific vars file
+       local_action: shell cp "{{ RUNNER_DIR }}/roles/vars/main.yml" "{{ ansible_work_dir }}/roles/websites-std/vars/{{ httpd_shortname }}_{{ inventory_hostname }}_{{ http_Interface }}.yml"
+
+     - name: Copy in site specific smlogout template
+       when: httpd_sm_flag == "Y"
+       local_action: shell cp "{{ RUNNER_DIR }}/roles/templates/smlogout.html.j2" "{{ ansible_work_dir }}/roles/websites-std/templates/smlogout.html.j2"
+
+     - name: Do variable substitution on smlogout file
+       when: httpd_sm_flag == "Y"
+       template:
+        src: "{{ ansible_work_dir }}/roles/websites-std/templates/smlogout.html.j2"
+        dest: "{{ RUNNER_DIR }}/DocRoots/site/DocRoot/smlogout.html"
+       delegate_to: localhost
+       
+     - name: Set ownership app installation folder
+       when: httpd_sm_flag == "Y"
+       file:
+        path: "{{ RUNNER_DIR }}/DocRoots/site/DocRoot/smlogout.html"
+        owner: "gitlab-runner"
+        group: "gitlab-runner"
+       delegate_to: localhost
+
+     - name: Load vars
+       include_vars: "{{ httpd_shortname }}_{{ inventory_hostname }}_{{ http_Interface }}.yml"
+       #include_vars: "{{ RUNNER_DIR }}/roles/vars/main.yml"
+
+     - name: Do variable substitution on rules files
+       template:
+        src: "{{ rules_file }}"
+        dest: "{{ ansible_work_dir }}/roles/websites-std/files/{{ httpd_shortname }}_{{ inventory_hostname }}_{{ http_Interface }}.rules"
+       delegate_to: localhost
+
+     - name: Stop the site first before making changes
+       systemd:
+        name: "{{ httpd_shortname }}-{{ http_Interface }}.service"
+        state: stopped
+       ignore_errors: yes
+
+     - name: Ensure website folder structure exists
+       file: 
+        path: "{{ httpd_docroot }}"
+        state: directory
+        mode: 0775
+       ignore_errors: yes
+
+     - name: Ensure website logging folder structure exists
+       file: 
+        path: "{{ httpd_logdir }}"
+        state: directory
+        mode: 0775
+       ignore_errors: yes
+
+     - name: Create health check page
+       shell: echo "Application is UP" > "{{ RUNNER_DIR }}/DocRoots/site/DocRoot/HealthCheck_{{ httpd_sitename }}.html"
+       delegate_to: localhost
+
+     - name: Copy in the site DocRoot contents
+       copy:
+        src: "{{ RUNNER_DIR }}/DocRoots/site/DocRoot"
+        dest: "{{ httpd_DestDir }}/{{ httpd_sitename}}"
+
+     - name: Copy in mime types file
+       copy:
+        src: "{{ RUNNER_DIR }}/mime.types"
+        dest: "{{ httpd_DestDir }}/{{ httpd_sitename}}"
+
+     - name: Set ownership app installation folder
+       file:
+        path: "{{ httpd_DestDir }}/{{ httpd_sitename }}"
+        owner: "{{ httpd_User }}"
+        group: "{{ httpd_Group }}"
+        state: directory
+        recurse: yes
+        follow: no
+  when: true == true
+  become: true
+  become_user: root
+

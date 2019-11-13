@@ -1,0 +1,30 @@
+.inv_deploy: &inv_def
+# any updates to files on this project will automaticly be pushed out.
+#
+  script:
+    - RUNNERDIR=`pwd`
+    - /bin/rm -Rf /work/ansible/roles/${CI_PROJECT_NAME}
+    - mkdir /work/ansible/roles/${CI_PROJECT_NAME}
+    - /bin/mv -v ${RUNNERDIR}/* /work/ansible/roles/${CI_PROJECT_NAME}/
+      
+stages:
+  - dev
+  - prod
+
+install_dev-inv:
+  
+  stage: dev
+  <<: *inv_def
+  only:
+      - dev
+  tags:
+   - ansible-test-1
+
+  
+install_prod-inv:
+  stage: prod
+  <<: *inv_def
+  only:
+      - master
+  tags:
+   - ansible-prod-1

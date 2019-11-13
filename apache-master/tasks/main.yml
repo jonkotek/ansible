@@ -1,0 +1,148 @@
+############ Start Apache Install Plays #############
+
+- name: Check for OpenSSL installed
+  stat:
+    path: /opt/apps/openssl/{{ openssl_version }}/bin/openssl
+  register: openssl_stat_result
+
+- name: If doesn't exist install OpenSSL
+  block:
+  - name: Make sure openssl folder structure exists
+    file:
+      path: "{{ Openssl_DestDir }}{{ Openssl_Version }}"
+      owner: root
+      group: root
+      mode: 0755
+      state: directory
+
+  - name: Copy tarball locally Damn firewalls!
+    shell: |
+         mkdir -p  "{{ RUNNER_DIR }}/tmp_files"
+         cd "{{ RUNNER_DIR }}/tmp_files"
+         chmod -R 777 "{{ RUNNER_DIR }}/tmp_files"
+    delegate_to: localhost
+    
+    
+  - name: Download Openssl binaries
+    get_url:
+      url: "https://{{ Openssl_Git_Path}}{{ Openssl_Version }}/{{ Openssl_Version }}.tgz"
+      dest: "{{ RUNNER_DIR }}/tmp_files/{{ Openssl_Version }}.tgz"
+      url_username: "{{ lookup('env','NEXUS_USER') }}"
+      url_password: "{{ lookup('env','NEXUS_PASS') }}"
+      validate_certs: False
+      mode: 0777
+    delegate_to: localhost
+
+  - name: Copy OpenSSL tarball to server
+    copy:
+     src: "{{ RUNNER_DIR }}/tmp_files/{{ Openssl_Version }}.tgz"
+     dest: "{{ Openssl_DestDir }}{{ Openssl_Version }}.tgz"
+     mode: 0444
+
+  - name: Unzip OpenSSL file and change owner of folder
+    unarchive:
+     src: "{{ Openssl_DestDir }}{{ Openssl_Version }}.tgz"
+     remote_src: yes
+     dest: "{{ Openssl_DestDir }}"
+
+  - name: Clean up any OpenSSL tar files from the pull
+    file:
+     state: absent
+     path: "{{ Openssl_DestDir }}{{ Openssl_Version }}.tgz"
+
+  - name: Set ownership OpenSSL
+    file:
+     path: "{{ Openssl_DestDir }}{{ Openssl_Version }}"
+     owner: "{{ Apache_User }}"
+     group: "{{ Apache_Group }}"
+     state: directory
+     recurse: yes
+
+  when: openssl_stat_result.stat.exists == false
+  become: Yes
+
+- name: Check existence of the version of apache needed
+  stat:
+    path: /opt/apps/apache64/{{ Apache_Version }}/bin/httpd
+  register: apache_stat_result
+
+- name: If doesn't exist install Apache
+  block:
+  - name: Make sure apache folder structure exists
+    file:
+      path: "{{ Apache_DestDir }}{{ Apache_Version }}"
+      owner: root
+      group: root
+      mode: 0755
+      state: directory
+
+  - name: Copy tarball locally Damn firewalls!
+    shell: |
+         mkdir -p  "{{ RUNNER_DIR }}/tmp_files"
+         cd "{{ RUNNER_DIR }}/tmp_files"
+    delegate_to: localhost
+    
+  - name: Download apache binaries
+    get_url:
+      url: "https://{{ Apache_Git_Path }}{{ httpd_version }}/{{ File_Version }}.tgz"
+      dest: "{{ RUNNER_DIR }}/tmp_files/{{ File_Version }}.tgz"
+      url_username: "{{ lookup('env','NEXUS_USER') }}"
+      url_password: "{{ lookup('env','NEXUS_PASS') }}"
+      validate_certs: False
+      mode: 0777
+    delegate_to: localhost
+
+
+
+#  - name: Get Apache_Version Git Project metadata in JSON via API
+#    get_url:
+#     url: https://{{ Apache_Git_Path }}{{ Apache_Version }}.tgz
+#     dest: "{{ Apache_DestDir }}{{ Apache_Version }}.json"
+#     mode: 0444
+
+#  - name: Register file into a varaible
+#    command: cat "{{ Apache_DestDir }}/{{ Apache_Version }}.json"
+#    register: json_var
+
+#  - name: Get value of Project ID from JSON
+#    set_fact:
+#     Apache_Project_Id: "{{ json_var.stdout | from_json | json_query('id') }}"
+
+#  - debug:
+#       msg: "Repo {{ Apache_Git_Site }}/{{ Apache_Project_Id }}/repository/files/{{ Apache_Version }}.tgz/raw?ref=master"
+
+  - name: Copy Apache tarball to server
+    copy:
+     src: "{{ RUNNER_DIR }}/tmp_files/httpd-{{ Apache_Version }}.tgz"
+     dest: "{{ Apache_DestDir }}{{ File_Version }}.tgz"
+     mode: 0444
+
+  - name: Unzip Apache file and change owner of folder
+    unarchive:
+     src: "{{ Apache_DestDir }}{{ File_Version }}.tgz"
+     remote_src: yes
+     dest: "{{ Apache_DestDir }}"
+
+  - name: Clean up any Apache tar files from the pull
+    file:
+     state: absent
+     path: "{{ Apache_DestDir }}{{ File_Version }}.tgz"
+
+  - name: Clean up json file from the pull
+    file:
+     state: absent
+     path: "{{ Apache_DestDir }}{{ Apache_Version }}.json"
+
+  - name: Set ownership
+    file:
+     path: "{{ Apache_DestDir }}{{ Apache_Version }}"
+     owner: "{{ Apache_User }}"
+     group: "{{ Apache_Group }}"
+     state: directory
+     recurse: yes
+
+  when: apache_stat_result.stat.exists == false
+  become: Yes
+
+############End Apache Install Plays #############
+

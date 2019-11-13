@@ -1,0 +1,43 @@
+############ Start AEM Configuration #############
+- name: AEM Configuration
+  block:
+     - name: Insert Dispatched configs
+       lineinfile:
+         path: "{{ httpd_DestDir }}/{{ httpd_sitename }}/httpd-{{ http_Interface }}.conf"
+         line: "{{ item.line }}"
+         insertafter: "^Timeout.*$"
+       with_items:
+         - { line: '</IfModule>'}
+         - { line: 'DispatcherUseProcessedURL {{ aem_dispatcheruseprocessedurl }}'}
+         - { line: 'DispatcherDeclineRoot {{ aem_dispatcherdeclineroot }}'}
+         - { line: 'DispatcherNoServerHeader {{ aem_dispatchernoserverheader }}'}
+         - { line: 'DispatcherLogLevel {{ aem_dispatcherloglevel }}'}
+         - { line: 'DispatcherLog {{ httpd_logdir }}/dispatcher.log'}
+         - { line: 'DispatcherConfig {{ httpd_DestDir }}/{{ httpd_sitename }}/dispatcher.any'}
+         - { line: '<IfModule disp_apache2.c>'}
+         - { line: 'LoadModule dispatcher_module modules/mod_dispatcher.so' }
+         - { line: '#Load module for Adobe cq5 software' }
+
+     - name: Copy dispatcher.any file
+       template:
+         src: "{{ RUNNER_DIR }}/roles/files/main.dispatcher.any"
+         dest: "{{ httpd_DestDir }}/{{ httpd_sitename }}/dispatcher.any"
+
+     - name: Create cq_cache Directory
+       file:
+         path: "{{ httpd_docroot }}/dispatcher-cache/"
+         mode: 0755
+         state: directory
+
+     - name: Set ownership app installation folder
+       file:
+         path: "{{ httpd_DestDir }}/{{ httpd_sitename }}"
+         owner: "{{ httpd_User }}"
+         group: "{{ httpd_Group }}"
+         recurse: yes
+
+
+  when: aem_flag == "Y"
+  become: true
+  become_user: root
+

@@ -1,0 +1,22 @@
+# Systemd unit file for Apache Web
+# playbook substitutions occur for text:
+#
+[Unit]
+Description=Apache Web {{ httpd_sitename }}
+
+#
+[Service]
+Type=forking
+#
+
+WorkingDirectory={{ httpd_logdir }}
+#
+# This is how we start/stop and restart
+ExecStart={{ httpd_BinDir }}/{{ httpd_version }}/bin/apachectl -f {{ httpd_DestDir }}/{{ httpd_sitename }}/httpd-{{ http_Interface }}.conf -k start
+ExecStop={{ httpd_BinDir }}/{{ httpd_version }}/bin/apachectl -f {{ httpd_DestDir }}/{{ httpd_sitename }}/httpd-{{ http_Interface }}.conf -k stop
+Restart=always
+RestartSec=240
+
+[Install]
+WantedBy=multi-user.target
+

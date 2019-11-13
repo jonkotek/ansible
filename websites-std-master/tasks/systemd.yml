@@ -1,0 +1,16 @@
+#
+############ Start Systemd Plays #############
+- name: Spring App Deploy
+  block:
+
+    - name: Activate systemd for website
+      systemd: 
+        daemon-reload: yes
+        name: "{{ httpd_shortname }}-{{ http_Interface }}.service"
+        state: restarted
+        enabled: true
+  
+  when: true == true
+  become: true
+  become_user: root
+

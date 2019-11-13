@@ -1,0 +1,11 @@
+#
+############ Start Systemd Plays #############
+
+- name: Site Systemd Template Updates
+  template:
+   src: systemd.j2
+   dest: /etc/systemd/system/{{ httpd_shortname }}-{{ http_Interface }}.service
+  become: true
+  become_user: root
+############ End Systemd Plays #############
+

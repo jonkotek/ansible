@@ -1,0 +1,123 @@
+# Check and install SSL certs
+- name: Check for Certs are installed
+  stat:
+    path: "{{ httpd_SSLCertificateKeyFile }}"
+  register: stat_result
+  become: true
+  become_user: root
+
+- name: Certificate installation
+  block:
+
+    - name: Make sure directory exists first.
+      file:
+        path: "/work/apache/certificates/"
+        owner: "{{ httpd_User }}"
+        group: "{{ httpd_Group }}"
+        mode: 0755
+        state: directory
+
+    - name: Copy chain cert to servers.
+      copy:
+        src: "/work/certificates/comodo-intermediate-bundle.crt"
+        dest: "{{ httpd_SSLCertificateChainFile }}"
+        mode: 0755
+
+    - name: Make sure app directory exists.
+      file:
+        path: "/work/apache/certificates/{{ httpd_sitename }}"
+        owner: "{{ httpd_User }}"
+        group: "{{ httpd_Group }}"
+        mode: 0755
+        state: directory
+
+
+    - name: Get certs from vault
+      uri:
+        url: "https://epplweb059:8443/certs/get/{{ httpd_sitename }}"
+        method: GET
+        validate_certs: false
+        headers:
+          Content-Type: "application/json"
+        user: "{{ lookup('env','API_USER') }}"
+        password: "{{ lookup('env','API_PASS') }}"
+        body_format: json
+        return_content: yes
+        status_code: 200, 201
+      register: outp
+      delegate_to: localhost
+      no_log: True
+      ignore_errors: yes
+
+    - name: Copy key to servers.
+      copy:
+        content: "{{ outp.json.key }}"
+        dest: "{{ httpd_SSLCertificateKeyFile }}"
+        mode: 0755
+      when: not outp.failed and outp.json.key is not undefined
+
+    - name: Copy cert to servers.
+      copy:
+        content: "{{ outp.json.cer }}"
+        dest: "{{ httpd_SSLCertificateFile }}"
+        mode: 0755
+      when: not outp.failed and outp.json.cer is not undefined
+
+    - name: Set ownership OpenSSL
+      file:
+        path: "/work/apache/certificates/"
+        owner: "{{ httpd_User }}"
+        group: "{{ httpd_Group }}"
+        state: directory
+        recurse: yes
+
+    - name: Certificate retrieval failure handling
+      block:
+
+        - name: Debug if fails
+          debug:
+            msg: "Certificate retrieval status {{ outp.json.status }}; error {{ outp.json.message }}"
+          ignore_errors: yes
+
+        - name: slack log_message
+          slack:
+            token: "{{ lookup('env','SLACK_TOKEN') }}"
+            msg: |
+              Certificate retrieval failed
+              cn: {{ httpd_sitename }}
+              app name: {{ lookup('env','CI_PROJECT_NAME') }}
+              env: {{ lookup('env','CI_JOB_STAGE') }}
+              job: {{ lookup('env','CI_JOB_URL') }}
+              user: {{ lookup('env','GITLAB_USER_EMAIL') }}
+            channel: "#mw_whoop"
+            color: danger
+          delegate_to: localhost
+          ignore_errors: yes
+
+        - name: Sending an e-mail 
+          mail:
+            host: 127.0.0.1
+            port: 25
+            to: TS.MiddlewareServices <TS.MiddlewareServices@supervalu.com>
+            from: Ansible@supervalu.com
+            subject: "Certificate not present in vault CN={{ httpd_sitename }}"
+            body: |
+              Certificate with the below details were not present in the vault or errored out while retrieval. Please do the needful... 
+              CN: {{ httpd_sitename }}
+              GIT_PROJECT_NAME: {{ lookup('env','CI_PROJECT_NAME') }} 
+              GIT_PROJECT_LINK: {{ lookup('env','CI_PROJECT_URL') }} 
+              GIT_BRANCH: {{ lookup('env','CI_JOB_STAGE') }}
+              JOB_LINK: {{ lookup('env','CI_JOB_URL') }}
+              COMMIT_REFL: {{ lookup('env','CI_COMMIT_SHA') }}
+              USER: {{ lookup('env','GITLAB_USER_EMAIL') }} 
+
+              Thanks
+              MWGEEKS via Ansible
+          delegate_to: localhost
+          ignore_errors: yes
+      when: outp.failed or (outp.status != 200 and outp.status != 201)
+      run_once: True 
+  when: stat_result.stat.exists == false
+  become: true
+  become_user: root
+
