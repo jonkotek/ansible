@@ -1,0 +1,40 @@
+#
+#
+############ Start Install Plays #############
+#
+- name: "Check AEM var"
+  debug:
+    msg: "AEM_flag= {{ aem_flag }}"
+    
+- name: "Ansible | List all known variables and facts"
+  debug:
+    var: hostvars[inventory_hostname]
+    
+- name: Copy sitename files
+  import_tasks: website.yml
+  when: httpd_sm_flag == "Y"
+
+- name: Copy sitename files
+  import_tasks: angular.yml
+  when: httpd_sm_flag == "N"
+
+- name: Copy sitename files
+  import_tasks: website.yml
+  when: httpd_sm_flag == "O"
+
+- name: Copy SSL cert files
+  import_tasks: certs.yml
+
+- name: Create httpd.conf file
+  import_tasks: def_httpd.yml
+
+- name: if AEM instance
+  import_tasks: aem.yml
+  when: aem_flag == "Y"
+
+- name: Create sitename systemd service file
+  import_tasks: def_systemd_service.yml
+
+- name: Perform systemd Mgmt functions
+  import_tasks: systemd.yml
+

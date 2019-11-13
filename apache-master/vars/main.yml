@@ -1,0 +1,14 @@
+
+Apache_Version: "{{ httpd_version }}"
+File_Version: "httpd-{{ httpd_version }}"
+Apache_DestDir: "/opt/apps/apache64/"
+Apache_User: "root"
+Apache_Group: "root"
+Apache_Git_Path: "nexus.supervalu.com/repository/middleware/apache/"
+
+#openssl_version: "openssl-1.0.2p"
+Openssl_Version: "{{ openssl_version }}"
+Openssl_DestDir: "/opt/apps/openssl/"
+Openssl_Git_Path: "nexus.supervalu.com/repository/middleware/openssl/"
+Openssl_User: "root"
+Openssl_Group: "root"

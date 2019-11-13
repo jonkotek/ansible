@@ -1,0 +1,167 @@
+#
+ServerName "{{ httpd_sitename }}"
+ServerRoot "{{ httpd_serveroot }}"
+
+PidFile {{ httpd_pidfile }}
+
+DefaultRuntimeDir "{{ httpd_runtimedir }}"
+
+Listen {{ httpd_listen }}
+Timeout {{ httpd_timeout }}
+
+# event MPM
+# StartServers: initial number of server processes to start
+# MinSpareThreads: minimum number of worker threads which are kept spare
+# MaxSpareThreads: maximum number of worker threads which are kept spare
+# ThreadsPerChild: constant number of worker threads in each server process
+# MaxRequestWorkers: maximum number of worker threads
+# MaxConnectionsPerChild: maximum number of connections a server process serves
+#                         before terminating
+<IfModule mpm_event_module>
+    StartServers           {{ httpd_StartServers }} 
+    MinSpareThreads        {{ httpd_MinSpareThreads }}
+    MaxSpareThreads        {{ httpd_MaxSpareThreads }}
+    ThreadsPerChild        {{ httpd_ThreadsPerChild }}
+    MaxRequestWorkers      {{ httpd_MaxRequestWorkers }}
+    ServerLimit            {{ httpd_ServerLimit }}
+    MaxConnectionsPerChild {{ httpd_MaxConnectionsPerChild }}
+</IfModule>
+
+
+#Loading requisite Apache Modules. Refer https://httpd.apache.org/docs/2.4/mod/ for further details
+
+#Other Apache Modules
+
+#Core Authentication
+LoadModule authn_core_module modules/mod_authn_core.so
+
+#User Authorization
+LoadModule authz_user_module modules/mod_authz_user.so
+
+#This module provides authorization capabilities
+LoadModule authz_dbm_module modules/mod_authz_dbm.so
+
+#Core Authorization.
+LoadModule authz_core_module modules/mod_authz_core.so
+
+#Easily restrict what HTTP methods can be used on the server
+LoadModule allowmethods_module modules/mod_allowmethods.so
+
+#shmcb based shared object cache provider.
+LoadModule socache_shmcb_module modules/mod_socache_shmcb.so
+
+#Filters to handle and make available HTTP request bodies
+LoadModule request_module modules/mod_request.so
+
+#Server-parsed html documents (Server Side Includes)
+LoadModule include_module modules/mod_include.so
+
+#Associates the requested filename's extensions with the file's behavior
+LoadModule mime_module modules/mod_mime.so
+
+#Logging of the requests made to the server
+LoadModule log_config_module modules/mod_log_config.so
+
+#Logging of input and output bytes per request
+LoadModule logio_module modules/mod_logio.so
+
+#Generation of Expires and Cache-Control HTTP headers according to user-specified critea
+LoadModule expires_module modules/mod_expires.so
+
+#Generation of Expires and Cache-Control HTTP headers according to user-specified critea
+LoadModule headers_module modules/mod_headers.so
+
+#Allows the setting of environment variables based on characteristics of the request
+LoadModule setenvif_module modules/mod_setenvif.so
+
+#Session support
+LoadModule session_module modules/mod_session.so
+
+#Cookie based session support
+LoadModule session_cookie_module modules/mod_session_cookie.so
+
+#Strong cryptography using the SSl & TLS
+#LoadModule ssl_module modules/mod_ssl.so
+
+#Basic (required) security for Unix-family platforms.
+LoadModule unixd_module modules/mod_unixd.so
+
+#Execute CGI scripts based on media type or request method.
+LoadModule actions_module modules/mod_actions.so
+
+#User-specific directories
+LoadModule userdir_module modules/mod_userdir.so
+
+#Provides for mapping different parts of the host filesystem in the document tree and for URL redirection
+LoadModule alias_module modules/mod_alias.so
+
+#If needed the mod_deflate will be added per site
+{{ httpd_mod_deflate }}
+
+ServerAdmin Ts.MiddlewareServices@supervalu.com
+
+<Directory />
+   AllowOverride none
+   AllowOverrideList ErrorDocument
+   ErrorDocument 403 "Didn't find the page you are looking for?"
+   ErrorDocument 404 "File Not Found"
+    Require all denied
+</Directory>
+
+User "{{ httpd_User }}"
+Group "{{ httpd_Group }}"
+
+<Files ".ht*">
+    Require all denied
+</Files>
+
+<IfModule mime_module>
+    TypesConfig "{{ httpd_Mime_TypesConfig }}"
+    AddType application/x-compress .Z
+    AddType application/x-gzip .gz .tgz
+</IfModule>
+
+##ETag 
+
+<IfModule mod_headers.c>
+Header unset ETag
+</IfModule>
+
+LogLevel warn
+
+<IfModule log_config_module>
+    #LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %T" combined
+    #LogFormat "%h %l %u %t \"%r\" %>s %b" common
+    LogFormat '%{Host}i | %h  | %{usernameSelectorCookie}C | %u | %t | %r | %s | %b | %{Referer}i | %{User-Agent}i | %T' combined
+    LogFormat "%h %l %u %t \"%r\" %>s %b" common
+
+    <IfModule logio_module>
+      # You need to enable mod_logio.c to use %I and %O
+      LogFormat "%{Host}i %a %B %D %b %h %l %m %p %P \"%q\" %u %U %X %t * \"%r\" %>s \"%{Referer}i\" \"%{User-Agent}i\" %I %O %T %{uid}i: %{cookie}n" combinedio
+    </IfModule>
+</IfModule>
+
+ServerTokens ProductOnly  
+
+DocumentRoot "{{ httpd_docroot }}"
+
+<Directory "{{ httpd_docroot }}">
+   Options -Indexes +FollowSymLinks
+       <Limit GET POST OPTIONS>
+             Require all granted
+       </Limit>
+       <LimitExcept GET POST OPTIONS>
+             Require all denied
+       </LimitExcept>
+   AllowOverride None
+   Require all granted
+</Directory>
+
+ErrorLog "{{ httpd_errorlog }}"
+CustomLog "{{ httpd_customlog }}" combined
+
+Header set Cache-Control "no-store"
+Header set Pragma "no-cache"
+Header set Content-Secure-Policy "default-src 'self';"
+Header set X-XSS-Protection "1; mode=block"
+Header set X-Content-Type-Options "nosniff"

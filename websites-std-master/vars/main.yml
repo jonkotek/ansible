@@ -1,0 +1,9 @@
+ansible_work_dir: "/work/ansible"
+
+httpd_DestDir: "/work/apache"
+httpd_BinDir: "/opt/apps/apache64"
+
+aem_dispatcheruseprocessedurl: 1
+aem_dispatcherdeclineroot: 1
+aem_dispatchernoserverheader: 1
+aem_dispatcherloglevel: 3

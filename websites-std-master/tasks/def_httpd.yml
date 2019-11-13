@@ -1,0 +1,137 @@
+# http_template is defined in the ansible inventory hosts file for this install
+############ Start httpd.conf Plays #############
+- name: Read in website rules file
+  local_action: shell cat "{{ ansible_work_dir }}/roles/websites-std/files/{{ httpd_shortname }}_{{ inventory_hostname }}_{{ http_Interface }}.rules"
+  register: site_data
+  when: httpd_sm_flag == "Y" or httpd_sm_flag == "O"
+
+- name: Assign rules data to a dynamic variable
+  set_fact:
+   httpd_rules: "{{ site_data.stdout }}"
+  when: httpd_sm_flag == "Y" or httpd_sm_flag == "O"
+
+- name: When http_Interface internal
+  block:
+    - name: Check Apache Listen Value for stg
+      set_fact:
+       httpd_listen: "{{ httpd_listen_stg_int }}"
+      when: CI_STAGE_NAME == "stg"
+
+    - name: Check Apache Listen Value for dev
+      set_fact:
+       httpd_listen: "{{ httpd_listen_dev_int }}"
+      when: CI_STAGE_NAME == "dev"
+
+    - name: Check Apache Listen Value for test
+      set_fact:
+       httpd_listen: "{{ httpd_listen_test_int }}"
+      when: CI_STAGE_NAME == "test"
+
+    - name: Check Apache Listen Value for pilot
+      set_fact:
+       httpd_listen: "{{ httpd_listen_pilot_int }}"
+      when: CI_STAGE_NAME == "pilot"
+
+    - name: Check Apache Listen Value for uat
+      set_fact:
+       httpd_listen: "{{ httpd_listen_uat_int }}"
+      when: CI_STAGE_NAME == "uat"
+
+    - name: Check Apache Listen Value for qa
+      set_fact:
+       httpd_listen: "{{ httpd_listen_qa_int }}"
+      when: CI_STAGE_NAME == "qa"
+
+    - name: Check Apache Listen Value for prod
+      set_fact:
+       httpd_listen: "{{ httpd_listen_prod_int }}"
+      when: CI_STAGE_NAME == "prod"
+
+    - name: Check Apache Listen Value for int 
+      set_fact:
+       httpd_listen: "{{ httpd_listen_int_int }}"
+      when: CI_STAGE_NAME == "int"
+
+
+  when: http_Interface == "int"
+
+- name: When http_Interface External
+  block:
+    - name: Check Apache Listen Value for stg
+      set_fact:
+       httpd_listen: "{{ httpd_listen_stg_ext }}"
+      when: CI_STAGE_NAME == "stg"
+
+    - name: Check Apache Listen Value for dev
+      set_fact:
+       httpd_listen: "{{ httpd_listen_dev_ext }}"
+      when: CI_STAGE_NAME == "dev"
+
+    - name: Check Apache Listen Value for test
+      set_fact:
+       httpd_listen: "{{ httpd_listen_test_ext }}"
+      when: CI_STAGE_NAME == "test"
+
+    - name: Check Apache Listen Value for pilot
+      set_fact:
+       httpd_listen: "{{ httpd_listen_pilot_ext }}"
+      when: CI_STAGE_NAME == "pilot"
+
+    - name: Check Apache Listen Value for uat
+      set_fact:
+       httpd_listen: "{{ httpd_listen_uat_ext }}"
+      when: CI_STAGE_NAME == "uat"
+
+    - name: Check Apache Listen Value for qa
+      set_fact:
+       httpd_listen: "{{ httpd_listen_qa_ext }}"
+      when: CI_STAGE_NAME == "qa"
+
+    - name: Check Apache Listen Value for prod
+      set_fact:
+       httpd_listen: "{{ httpd_listen_prod_ext }}"
+      when: CI_STAGE_NAME == "prod"
+
+    - name: Check Apache Listen Value for int
+      set_fact:
+       httpd_listen: "{{ httpd_listen_int_ext }}"
+      when: CI_STAGE_NAME == "int"
+
+
+  when: http_Interface == "ext"
+
+- name: Httpd.conf Siteminder Template Updates
+  template:
+   src: httpd.conf.sm.j2
+   dest: "{{ httpd_DestDir }}/{{ httpd_sitename }}/httpd-{{ http_Interface }}.conf"
+  when: httpd_sm_flag == "Y"
+  become: true
+  become_user: root
+
+- name: Httpd.conf Other login Template Updates
+  template:
+   src: httpd.conf.o.j2
+   dest: "{{ httpd_DestDir }}/{{ httpd_sitename }}/httpd-{{ http_Interface }}.conf"
+  when: httpd_sm_flag == "O"
+  become: true
+  become_user: root
+
+- name: Httpd.conf NO Siteminder Template Updates
+  template:
+   src: httpd.conf.j2
+   dest: "{{ httpd_DestDir }}/{{ httpd_sitename }}/httpd-{{ http_Interface }}.conf"
+  when: httpd_sm_flag == "N"
+  become: true
+  become_user: root
+
+- name: Set ownership app installation folder
+  file:
+   path: "{{ httpd_DestDir }}/{{ httpd_sitename }}"
+   owner: "{{ httpd_User }}"
+   group: "{{ httpd_Group }}"
+   recurse: yes
+  become: true
+  become_user: root
+
+############ End httpd.conf Plays #############
+
