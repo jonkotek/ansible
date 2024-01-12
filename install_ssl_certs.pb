@@ -12,7 +12,7 @@
       private: no
 
   tasks:
-    
+
     - name: install SSL certificate
       copy:
         content: '{{ ssl_certificate }}'
@@ -48,4 +48,4 @@
 
     - name: Check website status
       uri:
-        url: https://'{{ website }}'
+        url: https://{{ website }}
